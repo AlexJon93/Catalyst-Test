@@ -8,6 +8,64 @@
          * @param Integer   $argc   number of arguments passed to the script
          * @param Array     $argv   array of arguments passed to the script
          */
+        $file_name = 'users.csv';
+
+        if(in_array("--help", $argv)){
+            return printHelp();
+        }
+
+        elseif(in_array("--create_table", $argv)){
+            return createTable();
+        }
+
+        $file_directive = array_search("--file", $argv);
+        if($file_directive != FALSE){
+            $file_name = $argv[$file_directive+1];
+            $dry_run = in_array("--dry_run", $argv);
+            $db_details = getDatabaseDetails($argv);
+
+            if(!$dry_run and !$db_details){
+                echo "All database details required for db insertion run\n";
+                return FALSE;
+            }
+
+            return parseCSVFile($file_name, $dry_run, $db_details);
+        }
+    }
+
+    function printHelp()
+    {
+        /**
+         * simply prints out the list of directives and script usage instructions
+         */
+        echo    "Usage: user_upload.php [options] [--file] <file> [-h] <db host> [-u] <db user> [-p] <db password>\n".
+                "Options:\n".
+                "--create_table\tBuild users table without any insertion\n".
+                "--dry_run\tRuns validation and parsing, without any insertion\n".
+                "--file\t\tProceeding argument contains directory details for parsable csv file".
+                "\n".
+                "Database details required for any insertion operations to be performed\n";
+    }
+
+    function getDatabaseDetails($argv)
+    {
+        /**
+         * gets all the provided database details from the commandline
+         * 
+         * @param   Array   $argv       array of arguments passed to the script
+         * @return  Array   $details    array of details parsed from commandline arguments
+         */
+
+        if(in_array("-u", $argv) and in_array("-h", $argv) and in_array("-p", $argv)){
+            $details = array();
+            $details["user"] = $argv[array_search("-u", $argv)+1];
+            $details["host"] = $argv[array_search("-h", $argv)+1];
+            $details["pass"] = $argv[array_search("-p", $argv)+1];
+
+            return $details;
+        }
+
+        return FALSE;
     }
 
     function createTable($db_details)
@@ -22,7 +80,7 @@
          */
     }
 
-    function parseCSVFile($db_details, $dry_run, $file_name)
+    function parseCSVFile($file_name, $dry_run = FALSE, $db_details = NULL)
     {
         /**
          * core part of the script, takes the given csv file and parses details before passing to 
