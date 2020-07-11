@@ -1,4 +1,9 @@
 <?php
+    function exception_error_handler($errno, $errstr, $errfile, $errline ) {
+        throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
+    }
+    set_error_handler("exception_error_handler");
+
     function main($argc, $argv)
     {
         /**
@@ -10,14 +15,22 @@
          */
         $file_name = 'users.csv';
 
+        // checking for help directive
         if(in_array("--help", $argv)){
             return printHelp();
         }
 
+        // checking for table creation directive
         elseif(in_array("--create_table", $argv)){
-            return createTable();
+            $db_details = getDatabaseDetails($argv);
+            if(!$db_details){
+                echo "All database details required to create table\n";
+                return FALSE;
+            }
+            return createTable($db_details);
         }
 
+        // checking that file directive provided and gets it's $argv key
         $file_directive = array_search("--file", $argv);
         if($file_directive != FALSE){
             $file_name = $argv[$file_directive+1];
@@ -64,7 +77,6 @@
 
             return $details;
         }
-
         return FALSE;
     }
 
@@ -78,6 +90,19 @@
          *                                  the postgres database
          * @return  Boolean $result         True if successful creation, else False
          */
+        $create_query = "DROP TABLE IF EXISTS users;".
+                        "CREATE TABLE users(".
+                        "given_name text not null, surname text not null, email text not null unique);";
+        try {
+            $connection = pg_connect("host=$db_details[host] dbname=catalyst user=$db_details[user] password=$db_details[pass]");
+            pg_query($connection, $create_query);
+        } catch (Exception $err){
+            echo "Issue with creating table: ".$err->getMessage()."\n";
+            return FALSE;
+        }
+
+        echo "Table created successfully!\n";
+        return TRUE;
     }
 
     function parseCSVFile($file_name, $dry_run = FALSE, $db_details = NULL)
@@ -96,15 +121,14 @@
          */
     }
 
-    function insertRow($db_details, $row)
+    function insertRow($connection, $row)
     {
         /**
          * inserts given row into the postgres db
          * 
-         * @param   Array   $db_details     associative array of username, password, and host details for 
-         *                                  the postgres database
-         * @param   Array   $row            associative array containing row details
-         * @return  Boolean $outcome        True if successful insert, else False
+         * @param   Resource    $connection     PostgreSQL connection resource, created in parseCSVFile
+         * @param   Array       $row            associative array containing row details
+         * @return  Boolean     $outcome        True if successful insert, else False
          */
     }
 
