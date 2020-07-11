@@ -13,4 +13,4 @@ The following are assumptions made around the requirements provided:
 - Likewise database details are required to be provided for any insertion or table creation.
 - Rows with invalid emails do not end the script, but merely output an error and skip the row
 - Rows that contain fields with invalid characters (e.g Mich!@ael for name) are sanitised.
-- Invalid characters for Given Name/Surnames are: Numeric characters [0-9], all non-alphanumeric characters except ' - and whitespace characters
+- Invalid characters for Given Name/Surnames are: Numeric characters [0-9], all non-alphanumeric characters except ' and -
