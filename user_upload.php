@@ -4,6 +4,8 @@
     }
     set_error_handler("exception_error_handler");
 
+    const DB_NAME = "catalyst";
+
     function main($argc, $argv)
     {
         /**
@@ -92,9 +94,9 @@
          */
         $create_query = "DROP TABLE IF EXISTS users;".
                         "CREATE TABLE users(".
-                        "given_name text not null, surname text not null, email text not null unique);";
+                        "name text not null, surname text not null, email text not null unique);";
         try {
-            $connection = pg_connect("host=$db_details[host] dbname=catalyst user=$db_details[user] password=$db_details[pass]");
+            $connection = pg_connect("host=$db_details[host] dbname=".DB_NAME." user=$db_details[user] password=$db_details[pass]");
             pg_query($connection, $create_query);
         } catch (Exception $err){
             echo "Issue with creating table: ".$err->getMessage()."\n";
@@ -134,7 +136,7 @@
                 }
 
                 if(!$dry_run){
-                    $connection = pg_connect("host=$db_details[host] dbname=catalyst user=$db_details[user] password=$db_details[pass]");
+                    $connection = pg_connect("host=$db_details[host] dbname=".DB_NAME." user=$db_details[user] password=$db_details[pass]");
                     echo "Inserting: ".$sanitised_row['email']."\n";
                     insertRow($connection, $sanitised_row);
                 } else {
@@ -159,7 +161,12 @@
          * @param   Array       $row            associative array containing row details
          * @return  Boolean     $outcome        True if successful insert, else False
          */
-        // print_r($row);
+        try{
+            pg_insert($connection, "users", $row);
+        } catch(Exception $err){
+            echo "Issue with inserting row: ";
+            echo $err->getMessage()."\n\n";
+        }
     }
 
     function validateRow($row, $headers)
@@ -178,8 +185,7 @@
         // In case that an email is invalid, no insert should be made to database and an error message should be reported to STDOUT.
         $cleaned_row['email'] = trim($cleaned_row['email']);
         if(filter_var($cleaned_row['email'], FILTER_VALIDATE_EMAIL) == FALSE){
-            echo "Invalid email for the following row: ";
-            print_r($cleaned_row);
+            echo "Invalid email for the following row: $cleaned_row[email], skipping insert\n\n";
             return FALSE;
         }
         
