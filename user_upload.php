@@ -71,13 +71,20 @@
          * @return  Array   $details    array of details parsed from commandline arguments
          */
 
-        if(in_array("-u", $argv) and in_array("-h", $argv) and in_array("-p", $argv)){
-            $details = array();
-            $details["user"] = $argv[array_search("-u", $argv)+1];
-            $details["host"] = $argv[array_search("-h", $argv)+1];
-            $details["pass"] = $argv[array_search("-p", $argv)+1];
-
-            return $details;
+        try{
+            if(in_array("-u", $argv) and in_array("-h", $argv) and in_array("-p", $argv)){
+                $details = array();
+                $details["user"] = $argv[array_search("-u", $argv)+1];
+                $details["host"] = $argv[array_search("-h", $argv)+1];
+                $details["pass"] = $argv[array_search("-p", $argv)+1];
+    
+                return $details;
+            }
+        } catch(Exception $err){
+            if($err->getCode() == 8){
+                echo "Password required\n";
+                return FALSE;
+            }
         }
         return FALSE;
     }
