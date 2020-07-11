@@ -129,9 +129,16 @@
             // csv row iteration
             while(($row = fgetcsv($handler)) !== FALSE){
                 $sanitised_row = validateRow($row, $headers);
+                if($sanitised_row == FALSE){
+                    continue;
+                }
+
                 if(!$dry_run){
                     $connection = pg_connect("host=$db_details[host] dbname=catalyst user=$db_details[user] password=$db_details[pass]");
+                    echo "Inserting: ".$sanitised_row['email']."\n";
                     insertRow($connection, $sanitised_row);
+                } else {
+                    print_r($sanitised_row);
                 }
             }
         } catch(Exception $err){
@@ -139,7 +146,7 @@
             return FALSE;
         }
 
-        echo "All valid rows inserted!\n";
+        echo "All valid rows parsed!\n";
         return TRUE;
     }
 
@@ -163,8 +170,30 @@
          * @param   Array   $headers        integer array containing column headings
          * @return  Array   $cleaned_row    associative array containing validated/sanitised row
          */
+        // creating associative array from header and row arrays
         $cleaned_row = array_combine($headers, $row);
-        print_r($cleaned_row);
+
+        // The script should validate the email address before inserting, to make sure that it is valid 
+        // (valid means that it is a legal email format, e.g. “xxxx@asdf@asdf” is not a legal format). 
+        // In case that an email is invalid, no insert should be made to database and an error message should be reported to STDOUT.
+        $cleaned_row['email'] = trim($cleaned_row['email']);
+        if(filter_var($cleaned_row['email'], FILTER_VALIDATE_EMAIL) == FALSE){
+            echo "Invalid email for the following row: ";
+            print_r($cleaned_row);
+            return FALSE;
+        }
+        
+        // replaces numeric and invalid alphanumeric characters
+        $cleaned_row['name'] = preg_replace('/[^a-zA-Z-\'\n]+/', '', $cleaned_row['name']);
+        $cleaned_row['surname'] = preg_replace('/[^a-zA-Z-\'\n]+/', '', $cleaned_row['surname']);
+
+        // Name and surname field should be set to be capitalised e.g. from “john” to “John” before beinginserted into DB
+        $cleaned_row['name'] = ucfirst(strtolower($cleaned_row['name']));
+        $cleaned_row['surname'] = ucfirst(strtolower($cleaned_row['surname']));
+
+        // Emails need to be set to be lower case before being inserted into DB
+        $cleaned_row['email'] = strtolower($cleaned_row['email']);
+        return $cleaned_row;
     }
 
     main($argc, $argv);
