@@ -119,6 +119,28 @@
          *                                      by the main function or via the --file directive
          * @return  Boolean     $result         True if successfully parsed, else False
          */
+        try{
+            $handler = fopen($file_name, "r");
+
+            // header row can contain whitespace following the email field so, needs to trim
+            $header_str = fgets($handler);
+            $headers = str_getcsv(trim($header_str));
+
+            // csv row iteration
+            while(($row = fgetcsv($handler)) !== FALSE){
+                $sanitised_row = validateRow($row, $headers);
+                if(!$dry_run){
+                    $connection = pg_connect("host=$db_details[host] dbname=catalyst user=$db_details[user] password=$db_details[pass]");
+                    insertRow($connection, $sanitised_row);
+                }
+            }
+        } catch(Exception $err){
+            echo "Issue with parsing csv file: ".$err->getMessage()."\n";
+            return FALSE;
+        }
+
+        echo "All valid rows inserted!\n";
+        return TRUE;
     }
 
     function insertRow($connection, $row)
@@ -130,15 +152,19 @@
          * @param   Array       $row            associative array containing row details
          * @return  Boolean     $outcome        True if successful insert, else False
          */
+        // print_r($row);
     }
 
-    function validateRow($row)
+    function validateRow($row, $headers)
     {
         /**
          * performs validation and 'cleaning' on the given row
-         * @param   Array   $row            associative array containing row details
+         * @param   Array   $row            integer array containing row details
+         * @param   Array   $headers        integer array containing column headings
          * @return  Array   $cleaned_row    associative array containing validated/sanitised row
          */
+        $cleaned_row = array_combine($headers, $row);
+        print_r($cleaned_row);
     }
 
     main($argc, $argv);
